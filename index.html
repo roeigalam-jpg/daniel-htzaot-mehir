@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Assistant', sans-serif; background-color: #f1f5f9; direction: rtl; }
+        body { font-family: 'Assistant', sans-serif; background-color: #f1f5f9; direction: rtl; margin: 0; }
         
         /* Container styling - Responsive for mobile, A4 for print */
         .quote-container { 
@@ -54,17 +54,26 @@
 <body>
     <script>
         const myPassword = "300039856"; 
+        window.isAuthorized = false; // משתנה גלובלי שמונע מהמערכת לעלות אם לא מאושר
         let isLocked = true;
         
         while(isLocked) {
             let pswd = prompt("מערכת הצעות מחיר סגורה. אנא הכנס סיסמה מורשית גישה:");
             
             if(pswd === myPassword) {
-                isLocked = false; // הסיסמה נכונה, מאפשר גישה
+                isLocked = false; 
+                window.isAuthorized = true; // הסיסמה נכונה, מאפשר גישה
             } else if (pswd === null) {
-                // המשתמש לחץ ביטול
-                document.body.innerHTML = "<h2 style='text-align:center; padding-top:20%; color:#0c4a6e; font-family:sans-serif;'>גישה נדחתה 🔒<br><br>אנא רענן את העמוד כדי לנסות שוב.</h2>";
-                throw new Error("Access Denied");
+                // המשתמש לחץ ביטול - מציג מסך חסימה ועוצר הכל
+                document.body.innerHTML = `
+                    <div style="position:fixed; top:0; left:0; width:100vw; height:100vh; background-color:#f1f5f9; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999999;">
+                        <div style="font-size:60px; margin-bottom:20px;">🔒</div>
+                        <h2 style="color:#0c4a6e; font-family:'Assistant', sans-serif; font-size:2rem; font-weight:900; margin:0;">גישה נדחתה</h2>
+                        <p style="color:#64748b; font-family:'Assistant', sans-serif; font-size:1.2rem; margin-top:10px;">אנא רענן את העמוד כדי לנסות שוב.</p>
+                    </div>
+                `;
+                window.stop(); // פקודה שעוצרת את המשך טעינת הקוד של האתר לחלוטין
+                break;
             } else {
                 alert("סיסמה שגויה, נסה שוב.");
             }
@@ -696,8 +705,11 @@
             );
         };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        // הוספתי תנאי: המערכת עולה רק אם הסיסמה אושרה
+        if (window.isAuthorized) {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        }
     </script>
 </body>
 </html>
