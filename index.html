@@ -72,7 +72,7 @@
                         <p style="color:#64748b; font-family:'Assistant', sans-serif; font-size:1.2rem; margin-top:10px;">אנא רענן את העמוד כדי לנסות שוב.</p>
                     </div>
                 `;
-                window.stop(); // פקודה שעוצרת את המשך טעינת הקוד של האתר לחלוטין
+                window.stop(); 
                 break;
             } else {
                 alert("סיסמה שגויה, נסה שוב.");
@@ -141,7 +141,7 @@
 
             const [quoteMeta, setQuoteMeta] = useState({
                 label: 'הצעת מחיר',
-                num: `${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`,
+                num: `1001`,
                 date: new Date().toLocaleDateString('he-IL'),
                 due: '14 יום',
                 title: 'כותרת הצעת המחיר / נושא',
@@ -223,13 +223,29 @@
 
             const startNewQuote = () => {
                 if (confirm('להתחיל הצעת מחיר חדשה? (פרטי העסק והעיצוב יישמרו)')) {
-                    setClientInfo(defaultClientInfo);
+                    // קידום מספר ההצעה באחד
+                    let nextNum = quoteMeta.num;
+                    if (String(nextNum).includes('-')) {
+                        let parts = String(nextNum).split('-');
+                        let numPart = parseInt(parts[1]);
+                        if(!isNaN(numPart)) nextNum = `${parts[0]}-${numPart + 1}`;
+                    } else {
+                        let parsed = parseInt(nextNum);
+                        if(!isNaN(parsed)) nextNum = String(parsed + 1);
+                        else nextNum = `${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`;
+                    }
+
+                    setClientInfo({
+                        label: 'עבור הלקוח/ה:',
+                        name: "",
+                        addr: ""
+                    });
                     setItems([
                         { id: Date.now(), desc: 'סעיף עבודה חדש...', qty: 1, unit: 'יח\'', price: 0 }
                     ]);
                     setQuoteMeta(prev => ({
                         ...prev,
-                        num: `${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`,
+                        num: String(nextNum),
                         date: new Date().toLocaleDateString('he-IL'),
                         title: 'הצעת מחיר עבור שירות/התקנה'
                     }));
@@ -279,10 +295,14 @@
                        </div>`
                     : '';
 
+                // הגדרת שם המסמך והכותרת לשמירת ה-PDF
+                const docTitle = `${clientInfo.name || 'לקוח'} - ${quoteMeta.label} מס ${quoteMeta.num}`;
+
                 return `<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<title>${docTitle}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800;900&display=swap');
   @page { size: A4; margin: 0; }
@@ -416,6 +436,10 @@
                     win.document.open();
                     win.document.write(html);
                     win.document.close();
+                    
+                    // פקודה זו אחראית לשם המסמך כששומרים אותו ל-PDF
+                    win.document.title = `${clientInfo.name || 'לקוח_ללא_שם'} - ${quoteMeta.label} מס ${quoteMeta.num}`;
+
                     setTimeout(() => {
                         win.focus();
                         win.print();
@@ -705,7 +729,6 @@
             );
         };
 
-        // הוספתי תנאי: המערכת עולה רק אם הסיסמה אושרה
         if (window.isAuthorized) {
             const root = ReactDOM.createRoot(document.getElementById('root'));
             root.render(<App />);
