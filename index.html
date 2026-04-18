@@ -8,13 +8,267 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@3<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>מערכת הצעות מחיר - דניאל פרוייקטים</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         body { font-family: 'Assistant', sans-serif; background-color: #f1f5f9; direction: rtl; margin: 0; }
-        
-        /* Container styling - Responsive for mobile, A4 for print */
         .quote-container { 
+            width: 100%; max-width: 210mm; min-height: 297mm; background: white; 
+            box-shadow: 0 0 40px rgba(0,0,0,0.1); margin: auto; position: relative;
+            padding: 5mm; display: flex; flex-direction: column; box-sizing: border-box;
+        }
+        @media (min-width: 768px) { .quote-container { padding: 15mm; } }
+        input, textarea { border: none; outline: none; background: transparent; width: 100%; transition: background 0.2s; font-family: inherit; resize: none; overflow: hidden; }
+        input:focus, textarea:focus { background-color: #f0f9ff; border-radius: 4px; box-shadow: inset 0 0 0 1px #bae6fd; }
+        .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+        @media print {
+            body { background: white; }
+            .no-print { display: none !important; }
+            .quote-container { box-shadow: none; margin: 0; padding: 0; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="root">
+        <div style="display:flex; height:100vh; align-items:center; justify-content:center; flex-direction:column; color:#64748b;">
+            <p style="font-size:1.2rem; font-weight:bold;">אנא הכנס סיסמה כדי להמשיך...</p>
+        </div>
+    </div>
+
+    <script>
+        // הגדרות ראשוניות
+        const _authKey = "MzAwMDM5ODU2"; 
+        window.isAuthorized = false;
+        window.linkbaseLogoUrl = "https://roeigalam-jpg.github.io/daniel-htzaot-mehir/linkbase-logo.png";
+        
+        // בדיקת סיסמה
+        function checkAccess() {
+            let pswd = prompt("מערכת הצעות מחיר סגורה. אנא הכנס סיסמה:");
+            if (pswd !== null) {
+                if (btoa(pswd) === _authKey) {
+                    window.isAuthorized = true;
+                } else {
+                    alert("סיסמה שגויה.");
+                    checkAccess();
+                }
+            } else {
+                document.body.innerHTML = '<div style="text-align:center; padding-top:100px; font-family:sans-serif;"><h2>גישה נדחתה. רענן את הדף לניסיון נוסף.</h2></div>';
+            }
+        }
+        checkAccess();
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const AutoResizeTextarea = ({ value, onChange, className, rows = 1, placeholder }) => {
+            const textareaRef = useRef(null);
+            useEffect(() => {
+                if (textareaRef.current) {
+                    textareaRef.current.style.height = 'auto';
+                    textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+                }
+            }, [value]);
+            return (
+                <textarea ref={textareaRef} value={value} onChange={onChange} className={className} rows={rows} placeholder={placeholder} />
+            );
+        };
+
+        const App = () => {
+            const appId = 'daniel-pool-quotes-v1';
+            
+            // --- States ---
+            const [bizInfo, setBizInfo] = useState({
+                name: 'דניאל פרוייקטים - בריכות שחייה',
+                id: '300039856',
+                addr: 'מצדה 1, הוד השרון',
+                phone: '054-4414744'
+            });
+
+            const [clientInfo, setClientInfo] = useState({ name: '', addr: '' });
+            const [quoteMeta, setQuoteMeta] = useState({
+                num: '1001',
+                date: new Date().toLocaleDateString('he-IL'),
+                due: '14 יום',
+                title: 'הצעת מחיר עבור הקמה / שירות לבריכה'
+            });
+
+            const [items, setItems] = useState([{ id: 1, desc: 'תיאור שירות...', qty: 1, unit: "יח'", price: 0 }]);
+            const [vatRate, setVatRate] = useState(17);
+            const [discount, setDiscount] = useState(0);
+            const [notes, setNotes] = useState("• ההצעה אינה כוללת שירותים שלא צוינו במפורש.\n• אחריות על הציוד כפופה להנחיות היצרן.");
+            const [paymentTerms, setPaymentTerms] = useState("• מקדמה של 50% עם אישור ההזמנה.\n• יתרת התשלום בגמר העבודה.");
+            
+            const [saveStatus, setSaveStatus] = useState('שמור שינויים');
+
+            // Load saved data
+            useEffect(() => {
+                const saved = localStorage.getItem(appId);
+                if (saved) {
+                    try {
+                        const d = JSON.parse(saved);
+                        if(d.clientInfo) setClientInfo(d.clientInfo);
+                        if(d.items) setItems(d.items);
+                        if(d.quoteMeta) setQuoteMeta({...d.quoteMeta, date: new Date().toLocaleDateString('he-IL')});
+                    } catch(e) { console.error("Error loading data", e); }
+                }
+            }, []);
+
+            const save = () => {
+                localStorage.setItem(appId, JSON.stringify({ clientInfo, items, quoteMeta }));
+                setSaveStatus('✅ נשמר!');
+                setTimeout(() => setSaveStatus('שמור שינויים'), 2000);
+            };
+
+            const addItem = () => setItems([...items, { id: Date.now(), desc: 'סעיף חדש...', qty: 1, unit: "יח'", price: 0 }]);
+            const updateItem = (idx, field, val) => {
+                const newItems = [...items];
+                newItems[idx][field] = val;
+                setItems(newItems);
+            };
+            const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
+
+            const subtotalRaw = items.reduce((sum, item) => sum + (Number(item.qty) * Number(item.price)), 0);
+            const discountAmt = subtotalRaw * (discount / 100);
+            const subtotal = subtotalRaw - discountAmt;
+            const vat = subtotal * (vatRate / 100);
+            const total = subtotal + vat;
+
+            const printQuote = () => {
+                window.print();
+            };
+
+            return (
+                <div className="p-4 md:p-8">
+                    {/* Control Bar */}
+                    <div className="max-w-[1000px] mx-auto mb-6 bg-white p-4 rounded-2xl shadow-lg flex justify-between items-center no-print">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xl font-bold text-sky-700">דניאל פרוייקטים</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={save} className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold">{saveStatus}</button>
+                            <button onClick={printQuote} className="bg-sky-600 text-white px-4 py-2 rounded-lg font-bold">הפק PDF / הדפס</button>
+                        </div>
+                    </div>
+
+                    <div className="quote-container">
+                        {/* Header */}
+                        <div className="flex justify-between items-start mb-8">
+                            <div className="space-y-2">
+                                <input value={bizInfo.name} className="text-2xl font-black text-slate-800" readOnly />
+                                <div className="text-sm text-slate-500 font-bold">
+                                    <p>ח.פ: {bizInfo.id}</p>
+                                    <p>כתובת: {bizInfo.addr}</p>
+                                    <p>טלפון: {bizInfo.phone}</p>
+                                </div>
+                            </div>
+                            <div className="text-left bg-slate-50 p-6 rounded-2xl border border-slate-100 min-w-[200px]">
+                                <h2 className="text-3xl font-black text-sky-900 mb-4">הצעת מחיר</h2>
+                                <div className="text-sm space-y-1">
+                                    <div className="flex justify-between"><span>מספר הצעה:</span> <input value={quoteMeta.num} onChange={e => setQuoteMeta({...quoteMeta, num: e.target.value})} className="w-16 text-left font-bold" /></div>
+                                    <div className="flex justify-between"><span>תאריך:</span> <span className="font-bold">{quoteMeta.date}</span></div>
+                                    <div className="flex justify-between text-orange-600"><span>בתוקף ל:</span> <input value={quoteMeta.due} onChange={e => setQuoteMeta({...quoteMeta, due: e.target.value})} className="w-16 text-left font-bold" /></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Client Info */}
+                        <div className="bg-sky-50 p-6 rounded-2xl mb-8">
+                            <p className="text-[10px] font-bold text-sky-600 uppercase tracking-widest mb-1">עבור הלקוח/ה:</p>
+                            <input value={clientInfo.name} onChange={e => setClientInfo({...clientInfo, name: e.target.value})} className="text-2xl font-black text-sky-950" placeholder="שם הלקוח" />
+                            <input value={clientInfo.addr} onChange={e => setClientInfo({...clientInfo, addr: e.target.value})} className="text-lg text-slate-500 font-bold" placeholder="כתובת" />
+                        </div>
+
+                        {/* Title */}
+                        <div className="mb-6">
+                            <AutoResizeTextarea value={quoteMeta.title} onChange={e => setQuoteMeta({...quoteMeta, title: e.target.value})} className="text-xl font-bold border-r-4 border-sky-500 pr-4" />
+                        </div>
+
+                        {/* Table */}
+                        <table className="w-full mb-6 border-collapse">
+                            <thead>
+                                <tr className="bg-sky-900 text-white text-sm">
+                                    <th className="p-3 text-right">תיאור העבודה</th>
+                                    <th className="p-3 text-center w-16">כמות</th>
+                                    <th className="p-3 text-center w-20">יחידה</th>
+                                    <th className="p-3 text-center w-28">מחיר</th>
+                                    <th className="p-3 text-center w-32">סה"כ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {items.map((item, idx) => (
+                                    <tr key={item.id} className="border-b border-slate-100 group">
+                                        <td className="p-3">
+                                            <AutoResizeTextarea value={item.desc} onChange={e => updateItem(idx, 'desc', e.target.value)} className="font-semibold text-slate-700" />
+                                            <button onClick={() => removeItem(idx)} className="no-print text-red-400 text-xs mt-1 opacity-0 group-hover:opacity-100 transition-opacity">🗑️ הסר</button>
+                                        </td>
+                                        <td className="p-3"><input type="number" value={item.qty} onChange={e => updateItem(idx, 'qty', e.target.value)} className="text-center font-bold" /></td>
+                                        <td className="p-3"><input value={item.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} className="text-center" /></td>
+                                        <td className="p-3"><input type="number" value={item.price} onChange={e => updateItem(idx, 'price', e.target.value)} className="text-center font-bold" /></td>
+                                        <td className="p-3 text-center font-black" dir="ltr">{(item.qty * item.price).toLocaleString()} ₪</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <button onClick={addItem} className="no-print text-sky-600 font-bold text-sm mb-8">+ הוסף שורה</button>
+
+                        {/* Totals */}
+                        <div className="flex justify-end mb-10">
+                            <div className="w-72 bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-2">
+                                <div className="flex justify-between text-slate-500 font-bold"><span>סה"כ לפני מע"מ:</span> <span dir="ltr">{subtotalRaw.toLocaleString()} ₪</span></div>
+                                <div className="flex justify-between text-slate-500 font-bold border-b pb-2"><span>מע"מ ({vatRate}%):</span> <span dir="ltr">{Math.round(vat).toLocaleString()} ₪</span></div>
+                                <div className="flex justify-between text-xl font-black text-sky-900 pt-2"><span>סה"כ לתשלום:</span> <span dir="ltr">{Math.round(total).toLocaleString()} ₪</span></div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="mt-auto grid grid-cols-2 gap-8 mb-8">
+                            <div>
+                                <h4 className="font-bold underline mb-2">הערות:</h4>
+                                <AutoResizeTextarea value={notes} onChange={e => setNotes(e.target.value)} className="text-xs text-slate-600 leading-relaxed" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold underline mb-2">תנאי תשלום:</h4>
+                                <AutoResizeTextarea value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} className="text-xs text-slate-600 leading-relaxed" />
+                            </div>
+                        </div>
+
+                        {/* Signatures */}
+                        <div className="flex justify-between items-end mt-12 pb-4">
+                            <div className="w-48 border-t-2 border-slate-300 pt-2 text-center text-xs font-bold text-slate-400 uppercase">חתימת הלקוח</div>
+                            <div className="w-48 border-t-2 border-sky-900 pt-2 text-center text-xs font-bold text-sky-900 uppercase">דניאל פרוייקטים</div>
+                        </div>
+
+                        {/* Credit LinkBase */}
+                        <div className="mt-8 pt-4 border-t border-slate-100 flex justify-center items-center gap-2 text-[10px] text-slate-400 grayscale opacity-50">
+                            <span>המערכת פותחה ע"י</span>
+                            <img src={window.linkbaseLogoUrl} style={{height:'14px'}} alt="LinkBase" />
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Render with check
+        if (window.isAuthorized) {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        }
+    </script>
+</body>
+</html>
             width: 100%; 
             max-width: 210mm; 
             min-height: 297mm; 
