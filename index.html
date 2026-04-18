@@ -8,267 +8,14 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@3<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>מערכת הצעות מחיר - דניאל פרוייקטים</title>
-    
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         body { font-family: 'Assistant', sans-serif; background-color: #f1f5f9; direction: rtl; margin: 0; }
-        .quote-container { 
-            width: 100%; max-width: 210mm; min-height: 297mm; background: white; 
-            box-shadow: 0 0 40px rgba(0,0,0,0.1); margin: auto; position: relative;
-            padding: 5mm; display: flex; flex-direction: column; box-sizing: border-box;
-        }
-        @media (min-width: 768px) { .quote-container { padding: 15mm; } }
-        input, textarea { border: none; outline: none; background: transparent; width: 100%; transition: background 0.2s; font-family: inherit; resize: none; overflow: hidden; }
-        input:focus, textarea:focus { background-color: #f0f9ff; border-radius: 4px; box-shadow: inset 0 0 0 1px #bae6fd; }
-        .avoid-break { page-break-inside: avoid; break-inside: avoid; }
-        @media print {
-            body { background: white; }
-            .no-print { display: none !important; }
-            .quote-container { box-shadow: none; margin: 0; padding: 0; max-width: 100%; }
-        }
-    </style>
-</head>
-<body>
-
-    <div id="root">
-        <div style="display:flex; height:100vh; align-items:center; justify-content:center; flex-direction:column; color:#64748b;">
-            <p style="font-size:1.2rem; font-weight:bold;">אנא הכנס סיסמה כדי להמשיך...</p>
-        </div>
-    </div>
-
-    <script>
-        // הגדרות ראשוניות
-        const _authKey = "MzAwMDM5ODU2"; 
-        window.isAuthorized = false;
-        window.linkbaseLogoUrl = "https://roeigalam-jpg.github.io/daniel-htzaot-mehir/linkbase-logo.png";
         
-        // בדיקת סיסמה
-        function checkAccess() {
-            let pswd = prompt("מערכת הצעות מחיר סגורה. אנא הכנס סיסמה:");
-            if (pswd !== null) {
-                if (btoa(pswd) === _authKey) {
-                    window.isAuthorized = true;
-                } else {
-                    alert("סיסמה שגויה.");
-                    checkAccess();
-                }
-            } else {
-                document.body.innerHTML = '<div style="text-align:center; padding-top:100px; font-family:sans-serif;"><h2>גישה נדחתה. רענן את הדף לניסיון נוסף.</h2></div>';
-            }
-        }
-        checkAccess();
-    </script>
-
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-
-        const AutoResizeTextarea = ({ value, onChange, className, rows = 1, placeholder }) => {
-            const textareaRef = useRef(null);
-            useEffect(() => {
-                if (textareaRef.current) {
-                    textareaRef.current.style.height = 'auto';
-                    textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
-                }
-            }, [value]);
-            return (
-                <textarea ref={textareaRef} value={value} onChange={onChange} className={className} rows={rows} placeholder={placeholder} />
-            );
-        };
-
-        const App = () => {
-            const appId = 'daniel-pool-quotes-v1';
-            
-            // --- States ---
-            const [bizInfo, setBizInfo] = useState({
-                name: 'דניאל פרוייקטים - בריכות שחייה',
-                id: '300039856',
-                addr: 'מצדה 1, הוד השרון',
-                phone: '054-4414744'
-            });
-
-            const [clientInfo, setClientInfo] = useState({ name: '', addr: '' });
-            const [quoteMeta, setQuoteMeta] = useState({
-                num: '1001',
-                date: new Date().toLocaleDateString('he-IL'),
-                due: '14 יום',
-                title: 'הצעת מחיר עבור הקמה / שירות לבריכה'
-            });
-
-            const [items, setItems] = useState([{ id: 1, desc: 'תיאור שירות...', qty: 1, unit: "יח'", price: 0 }]);
-            const [vatRate, setVatRate] = useState(17);
-            const [discount, setDiscount] = useState(0);
-            const [notes, setNotes] = useState("• ההצעה אינה כוללת שירותים שלא צוינו במפורש.\n• אחריות על הציוד כפופה להנחיות היצרן.");
-            const [paymentTerms, setPaymentTerms] = useState("• מקדמה של 50% עם אישור ההזמנה.\n• יתרת התשלום בגמר העבודה.");
-            
-            const [saveStatus, setSaveStatus] = useState('שמור שינויים');
-
-            // Load saved data
-            useEffect(() => {
-                const saved = localStorage.getItem(appId);
-                if (saved) {
-                    try {
-                        const d = JSON.parse(saved);
-                        if(d.clientInfo) setClientInfo(d.clientInfo);
-                        if(d.items) setItems(d.items);
-                        if(d.quoteMeta) setQuoteMeta({...d.quoteMeta, date: new Date().toLocaleDateString('he-IL')});
-                    } catch(e) { console.error("Error loading data", e); }
-                }
-            }, []);
-
-            const save = () => {
-                localStorage.setItem(appId, JSON.stringify({ clientInfo, items, quoteMeta }));
-                setSaveStatus('✅ נשמר!');
-                setTimeout(() => setSaveStatus('שמור שינויים'), 2000);
-            };
-
-            const addItem = () => setItems([...items, { id: Date.now(), desc: 'סעיף חדש...', qty: 1, unit: "יח'", price: 0 }]);
-            const updateItem = (idx, field, val) => {
-                const newItems = [...items];
-                newItems[idx][field] = val;
-                setItems(newItems);
-            };
-            const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
-
-            const subtotalRaw = items.reduce((sum, item) => sum + (Number(item.qty) * Number(item.price)), 0);
-            const discountAmt = subtotalRaw * (discount / 100);
-            const subtotal = subtotalRaw - discountAmt;
-            const vat = subtotal * (vatRate / 100);
-            const total = subtotal + vat;
-
-            const printQuote = () => {
-                window.print();
-            };
-
-            return (
-                <div className="p-4 md:p-8">
-                    {/* Control Bar */}
-                    <div className="max-w-[1000px] mx-auto mb-6 bg-white p-4 rounded-2xl shadow-lg flex justify-between items-center no-print">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-sky-700">דניאל פרוייקטים</span>
-                        </div>
-                        <div className="flex gap-2">
-                            <button onClick={save} className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold">{saveStatus}</button>
-                            <button onClick={printQuote} className="bg-sky-600 text-white px-4 py-2 rounded-lg font-bold">הפק PDF / הדפס</button>
-                        </div>
-                    </div>
-
-                    <div className="quote-container">
-                        {/* Header */}
-                        <div className="flex justify-between items-start mb-8">
-                            <div className="space-y-2">
-                                <input value={bizInfo.name} className="text-2xl font-black text-slate-800" readOnly />
-                                <div className="text-sm text-slate-500 font-bold">
-                                    <p>ח.פ: {bizInfo.id}</p>
-                                    <p>כתובת: {bizInfo.addr}</p>
-                                    <p>טלפון: {bizInfo.phone}</p>
-                                </div>
-                            </div>
-                            <div className="text-left bg-slate-50 p-6 rounded-2xl border border-slate-100 min-w-[200px]">
-                                <h2 className="text-3xl font-black text-sky-900 mb-4">הצעת מחיר</h2>
-                                <div className="text-sm space-y-1">
-                                    <div className="flex justify-between"><span>מספר הצעה:</span> <input value={quoteMeta.num} onChange={e => setQuoteMeta({...quoteMeta, num: e.target.value})} className="w-16 text-left font-bold" /></div>
-                                    <div className="flex justify-between"><span>תאריך:</span> <span className="font-bold">{quoteMeta.date}</span></div>
-                                    <div className="flex justify-between text-orange-600"><span>בתוקף ל:</span> <input value={quoteMeta.due} onChange={e => setQuoteMeta({...quoteMeta, due: e.target.value})} className="w-16 text-left font-bold" /></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Client Info */}
-                        <div className="bg-sky-50 p-6 rounded-2xl mb-8">
-                            <p className="text-[10px] font-bold text-sky-600 uppercase tracking-widest mb-1">עבור הלקוח/ה:</p>
-                            <input value={clientInfo.name} onChange={e => setClientInfo({...clientInfo, name: e.target.value})} className="text-2xl font-black text-sky-950" placeholder="שם הלקוח" />
-                            <input value={clientInfo.addr} onChange={e => setClientInfo({...clientInfo, addr: e.target.value})} className="text-lg text-slate-500 font-bold" placeholder="כתובת" />
-                        </div>
-
-                        {/* Title */}
-                        <div className="mb-6">
-                            <AutoResizeTextarea value={quoteMeta.title} onChange={e => setQuoteMeta({...quoteMeta, title: e.target.value})} className="text-xl font-bold border-r-4 border-sky-500 pr-4" />
-                        </div>
-
-                        {/* Table */}
-                        <table className="w-full mb-6 border-collapse">
-                            <thead>
-                                <tr className="bg-sky-900 text-white text-sm">
-                                    <th className="p-3 text-right">תיאור העבודה</th>
-                                    <th className="p-3 text-center w-16">כמות</th>
-                                    <th className="p-3 text-center w-20">יחידה</th>
-                                    <th className="p-3 text-center w-28">מחיר</th>
-                                    <th className="p-3 text-center w-32">סה"כ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {items.map((item, idx) => (
-                                    <tr key={item.id} className="border-b border-slate-100 group">
-                                        <td className="p-3">
-                                            <AutoResizeTextarea value={item.desc} onChange={e => updateItem(idx, 'desc', e.target.value)} className="font-semibold text-slate-700" />
-                                            <button onClick={() => removeItem(idx)} className="no-print text-red-400 text-xs mt-1 opacity-0 group-hover:opacity-100 transition-opacity">🗑️ הסר</button>
-                                        </td>
-                                        <td className="p-3"><input type="number" value={item.qty} onChange={e => updateItem(idx, 'qty', e.target.value)} className="text-center font-bold" /></td>
-                                        <td className="p-3"><input value={item.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} className="text-center" /></td>
-                                        <td className="p-3"><input type="number" value={item.price} onChange={e => updateItem(idx, 'price', e.target.value)} className="text-center font-bold" /></td>
-                                        <td className="p-3 text-center font-black" dir="ltr">{(item.qty * item.price).toLocaleString()} ₪</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <button onClick={addItem} className="no-print text-sky-600 font-bold text-sm mb-8">+ הוסף שורה</button>
-
-                        {/* Totals */}
-                        <div className="flex justify-end mb-10">
-                            <div className="w-72 bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-2">
-                                <div className="flex justify-between text-slate-500 font-bold"><span>סה"כ לפני מע"מ:</span> <span dir="ltr">{subtotalRaw.toLocaleString()} ₪</span></div>
-                                <div className="flex justify-between text-slate-500 font-bold border-b pb-2"><span>מע"מ ({vatRate}%):</span> <span dir="ltr">{Math.round(vat).toLocaleString()} ₪</span></div>
-                                <div className="flex justify-between text-xl font-black text-sky-900 pt-2"><span>סה"כ לתשלום:</span> <span dir="ltr">{Math.round(total).toLocaleString()} ₪</span></div>
-                            </div>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="mt-auto grid grid-cols-2 gap-8 mb-8">
-                            <div>
-                                <h4 className="font-bold underline mb-2">הערות:</h4>
-                                <AutoResizeTextarea value={notes} onChange={e => setNotes(e.target.value)} className="text-xs text-slate-600 leading-relaxed" />
-                            </div>
-                            <div>
-                                <h4 className="font-bold underline mb-2">תנאי תשלום:</h4>
-                                <AutoResizeTextarea value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} className="text-xs text-slate-600 leading-relaxed" />
-                            </div>
-                        </div>
-
-                        {/* Signatures */}
-                        <div className="flex justify-between items-end mt-12 pb-4">
-                            <div className="w-48 border-t-2 border-slate-300 pt-2 text-center text-xs font-bold text-slate-400 uppercase">חתימת הלקוח</div>
-                            <div className="w-48 border-t-2 border-sky-900 pt-2 text-center text-xs font-bold text-sky-900 uppercase">דניאל פרוייקטים</div>
-                        </div>
-
-                        {/* Credit LinkBase */}
-                        <div className="mt-8 pt-4 border-t border-slate-100 flex justify-center items-center gap-2 text-[10px] text-slate-400 grayscale opacity-50">
-                            <span>המערכת פותחה ע"י</span>
-                            <img src={window.linkbaseLogoUrl} style={{height:'14px'}} alt="LinkBase" />
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // Render with check
-        if (window.isAuthorized) {
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(<App />);
-        }
-    </script>
-</body>
-</html>
+        /* Container styling - Responsive for mobile, A4 for print */
+        .quote-container { 
             width: 100%; 
             max-width: 210mm; 
             min-height: 297mm; 
@@ -306,29 +53,17 @@
 </head>
 <body>
     <script>
-        // מנגנון סיסמה מאובטח יותר (Base64)
-        const _authKey = "MzAwMDM5ODU2"; 
+        const myPassword = "300039856"; 
         window.isAuthorized = false; // משתנה גלובלי שמונע מהמערכת לעלות אם לא מאושר
         let isLocked = true;
-        
-        // ==========================================
-        // משיכת הלוגו של LINKBASE דרך לינק (אופציה 2)
-        // ודא שהקובץ linkbase-logo.png נמצא ב-GitHub שלך
-        // ==========================================
-        window.linkbaseLogoBase64 = "https://roeigalam-jpg.github.io/daniel-htzaot-mehir/linkbase-logo.png"; 
         
         while(isLocked) {
             let pswd = prompt("מערכת הצעות מחיר סגורה. אנא הכנס סיסמה מורשית גישה:");
             
-            if(pswd !== null) {
-                // מקודד את הקלט ובודק אם הוא תואם למפתח המוצפן
-                if (btoa(pswd) === _authKey) {
-                    isLocked = false; 
-                    window.isAuthorized = true; // הסיסמה נכונה, מאפשר גישה
-                } else {
-                    alert("סיסמה שגויה, נסה שוב.");
-                }
-            } else {
+            if(pswd === myPassword) {
+                isLocked = false; 
+                window.isAuthorized = true; // הסיסמה נכונה, מאפשר גישה
+            } else if (pswd === null) {
                 // המשתמש לחץ ביטול - מציג מסך חסימה ועוצר הכל
                 document.body.innerHTML = `
                     <div style="position:fixed; top:0; left:0; width:100vw; height:100vh; background-color:#f1f5f9; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999999;">
@@ -339,6 +74,8 @@
                 `;
                 window.stop(); 
                 break;
+            } else {
+                alert("סיסמה שגויה, נסה שוב.");
             }
         }
     </script>
@@ -347,10 +84,6 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-
-        // משיכת משתנה הלוגו שהוגדר מחוץ ל-React כדי למנוע קריסה
-        const linkbaseLogoBase64 = window.linkbaseLogoBase64 || "";
-        const myWhatsAppNumber = "972502580803"; // המספר אליו יוביל הכפתור בוואטסאפ
 
         const AutoResizeTextarea = ({ value, onChange, className, rows = 1, placeholder }) => {
             const textareaRef = useRef(null);
@@ -391,17 +124,17 @@
                 totalText: 'סה"כ לתשלום:',
                 clientSignText: 'חתימת / אישור הלקוח',
                 bizSignText: 'שם העסק / מורשה חתימה',
-                watermarkText: 'DANIEL PROJECTS'
+                watermarkText: 'BUSINESS LOGO'
             };
             const [uiLabels, setUiLabels] = useState(defaultLabels);
 
             // --- Content State ---
             const defaultBizInfo = {
-                name: 'דניאל פרוייקטים - בריכות שחייה',
-                id: '300039856',
-                addr: 'מצדה 1, הוד השרון',
-                phone: '054-4414744',
-                labels: { id: 'עוסק מורשה:', addr: 'כתובת:', phone: 'טלפון:' }
+                name: 'שם העסק שלך',
+                id: '510000000',
+                addr: 'כתובת העסק',
+                phone: 'טלפון ליצירת קשר',
+                labels: { id: 'ח.פ/עוסק:', addr: 'כתובת:', phone: 'טלפון:' }
             };
 
             const [bizInfo, setBizInfo] = useState(defaultBizInfo);
@@ -411,19 +144,20 @@
                 num: `1001`,
                 date: new Date().toLocaleDateString('he-IL'),
                 due: '14 יום',
-                title: 'הצעת מחיר עבור הקמה / שירות לבריכה',
+                title: 'כותרת הצעת המחיר / נושא',
                 labels: { num: 'מספר הצעה:', date: 'תאריך:', due: 'בתוקף ל:' }
             });
 
             const defaultClientInfo = {
                 label: 'עבור הלקוח/ה:',
-                name: "",
-                addr: ""
+                name: "שם הלקוח",
+                addr: 'כתובת מלאה'
             };
             const [clientInfo, setClientInfo] = useState(defaultClientInfo);
 
             const defaultItems = [
-                { id: 1, desc: 'תיאור שירות או מוצר ראשון...', qty: 1, unit: 'יח\'', price: 0 },
+                { id: 1, desc: 'תיאור שירות או מוצר ראשון...', qty: 1, unit: 'יח\'', price: 1000 },
+                { id: 2, desc: 'תיאור שירות או מוצר שני...', qty: 1, unit: 'קבלנות', price: 500 },
             ];
             const [items, setItems] = useState(defaultItems);
 
@@ -513,7 +247,7 @@
                         ...prev,
                         num: String(nextNum),
                         date: new Date().toLocaleDateString('he-IL'),
-                        title: 'הצעת מחיר עבור הקמה / שירות לבריכה'
+                        title: 'הצעת מחיר עבור שירות/התקנה'
                     }));
                     setDiscount(0);
                 }
@@ -555,17 +289,13 @@
                     </tr>`;
                 }).join('');
 
-                // תומך כעת גם בלינקים (http) וגם ב-Base64 (data:image)
-                const displayLogoCode = linkbaseLogoBase64 && (linkbaseLogoBase64.startsWith('data:image') || linkbaseLogoBase64.startsWith('http')) 
-                    ? `<img src="${linkbaseLogoBase64}" style="height: 16px; object-fit: contain; margin: 0 6px;" alt="LINKBASE">` 
-                    : `<span style="font-weight: 800; color: #0c4a6e; margin: 0 4px;">LINKBASE</span>`;
-
                 const discountRowHTML = discount > 0
                     ? `<div style="display:flex;justify-content:space-between;color:#ea580c;font-weight:700;font-size:15px;margin-bottom:10px;">
                         <span>${uiLabels.discountText} (${discount}%):</span><span dir="ltr">- ${discountAmount.toLocaleString('he-IL')} ₪</span>
                        </div>`
                     : '';
 
+                // הגדרת שם המסמך והכותרת לשמירת ה-PDF
                 const docTitle = `${clientInfo.name || 'לקוח'} - ${quoteMeta.label} מס ${quoteMeta.num}`;
 
                 return `<!DOCTYPE html>
@@ -579,8 +309,7 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { margin: 0; padding: 0; background: white; }
   body { font-family: 'Assistant', Arial, sans-serif; direction: rtl; color: #1e293b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .page { width: 210mm; padding: 14mm 14mm 10mm; background: white; position: relative; min-height: 296mm; display: flex; flex-direction: column; }
-  .content-wrapper { flex: 1; }
+  .page { width: 210mm; padding: 14mm 14mm 10mm; background: white; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
   .biz-side { flex: 1; }
   .biz-logo { margin-bottom: 20px; }
@@ -617,90 +346,393 @@
   .clause { flex: 1; }
   .clause-title { font-size: 13px; font-weight: 900; color: #0c4a6e; text-decoration: underline; text-underline-offset: 5px; margin-bottom: 10px; display: block; }
   .clause-text { font-size: 12px; color: #334155; font-weight: 600; line-height: 1.8; white-space: pre-wrap; background: #f8fafc; padding: 16px 20px; border-radius: 24px; }
-  .sig { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 36px; padding-bottom: 5mm; }
+  .sig { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 36px; padding-bottom: 8mm; }
   .sig-line { text-align: center; width: 220px; }
   .sig-bar { border-top: 3px solid #cbd5e1; padding-top: 14px; }
   .sig-bar.company { border-top-color: #0c4a6e; }
   .sig-lbl { font-size: 11px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 3px; }
   .sig-lbl.company { color: #0c4a6e; }
-  .system-credit { border-top: 1px solid #f1f5f9; padding-top: 12px; font-size: 12px; color: #94a3b8; text-align: center; display: flex; justify-content: center; align-items: center; }
 </style>
 </head>
 <body>
 <div class="page">
-  <div class="content-wrapper">
-      <div class="header">
-        <div class="biz-side">
-          <div class="biz-logo">${logoHTML}</div>
-          <div class="biz-border">
-            <div class="biz-name">${bizInfo.name}</div>
-            <div class="biz-row"><span class="biz-lbl">${bizInfo.labels.id}</span><span>${bizInfo.id}</span></div>
-            <div class="biz-row"><span class="biz-lbl">${bizInfo.labels.addr}</span><span>${bizInfo.addr}</span></div>
-            <div class="biz-row"><span class="biz-lbl">${bizInfo.labels.phone}</span><span>${bizInfo.phone}</span></div>
-          </div>
-        </div>
-        <div class="badge-side">
-          <div class="quote-badge">${quoteMeta.label}</div>
-          <div class="meta-box">
-            <div class="meta-row"><span class="meta-lbl">${quoteMeta.labels.num}</span><span class="meta-val">${quoteMeta.num}</span></div>
-            <div class="meta-row"><span class="meta-lbl">${quoteMeta.labels.date}</span><span class="meta-val">${quoteMeta.date}</span></div>
-            <div class="meta-row"><span class="meta-lbl" style="color:#f97316">${quoteMeta.labels.due}</span><span class="meta-val" style="color:#ea580c">${quoteMeta.due}</span></div>
-          </div>
-        </div>
+  <div class="header">
+    <div class="biz-side">
+      <div class="biz-logo">${logoHTML}</div>
+      <div class="biz-border">
+        <div class="biz-name">${bizInfo.name}</div>
+        <div class="biz-row"><span class="biz-lbl">${bizInfo.labels.id}</span><span>${bizInfo.id}</span></div>
+        <div class="biz-row"><span class="biz-lbl">${bizInfo.labels.addr}</span><span>${bizInfo.addr}</span></div>
+        <div class="biz-row"><span class="biz-lbl">${bizInfo.labels.phone}</span><span>${bizInfo.phone}</span></div>
       </div>
-
-      <div class="client-box">
-        <span class="client-lbl">${clientInfo.label}</span>
-        <span class="client-name">${clientInfo.name}</span>
-        <span class="client-addr">${clientInfo.addr}</span>
+    </div>
+    <div class="badge-side">
+      <div class="quote-badge">${quoteMeta.label}</div>
+      <div class="meta-box">
+        <div class="meta-row"><span class="meta-lbl">${quoteMeta.labels.num}</span><span class="meta-val">${quoteMeta.num}</span></div>
+        <div class="meta-row"><span class="meta-lbl">${quoteMeta.labels.date}</span><span class="meta-val">${quoteMeta.date}</span></div>
+        <div class="meta-row"><span class="meta-lbl" style="color:#f97316">${quoteMeta.labels.due}</span><span class="meta-val" style="color:#ea580c">${quoteMeta.due}</span></div>
       </div>
-
-      <div class="quote-title">${quoteMeta.title}</div>
-
-      <table>
-        <thead><tr>
-          <th style="text-align:right">${uiLabels.tableDesc}</th>
-          <th>${uiLabels.tableQty}</th>
-          <th>${uiLabels.tableUnit}</th>
-          <th>${uiLabels.tablePrice}</th>
-          <th>${uiLabels.tableTotal}</th>
-        </tr></thead>
-        <tbody>${rowsHTML}</tbody>
-      </table>
-
-      <div class="fin-wrap">
-        <div class="fin-box">
-          <div class="fin-row fin-sub"><span>${uiLabels.subtotalText}</span><span dir="ltr">${subtotalRaw.toLocaleString('he-IL')} ₪</span></div>
-          ${discountRowHTML}
-          <div class="fin-row fin-vat"><span>${uiLabels.vatText} (${vatRate}%):</span><span dir="ltr">${Math.round(vat).toLocaleString('he-IL')} ₪</span></div>
-          <div class="fin-row fin-total"><span>${uiLabels.totalText}</span><span style="color:#ea580c" dir="ltr">${Math.round(total).toLocaleString('he-IL')} ₪</span></div>
-        </div>
-      </div>
-
-      <div style="border-top:2px solid #f1f5f9;padding-top:20px;">
-        <div class="clauses">
-          <div class="clause">
-            <span class="clause-title">${notesTitle}</span>
-            <div class="clause-text">${notes}</div>
-          </div>
-          <div class="clause">
-            <span class="clause-title">${paymentTitle}</span>
-            <div class="clause-text">${paymentTerms}</div>
-          </div>
-        </div>
-        <div class="sig">
-          <div class="sig-line"><div style="text-align:center;margin-bottom:6px">${sigLogoHTML}</div><div class="sig-bar company"><span class="sig-lbl company">${uiLabels.bizSignText}</span></div></div>
-          <div class="sig-line"><div class="sig-bar"><span class="sig-lbl">${uiLabels.clientSignText}</span></div></div>
-        </div>
-      </div>
+    </div>
   </div>
-  
-  <div class="system-credit">
-      <span>הופק ע"י מערכת מבית</span>
-      ${displayLogoCode}
-      <a href="https://wa.me/${myWhatsAppNumber}" target="_blank" style="display: flex; align-items: center; margin-right: 8px; text-decoration: none;">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" style="width: 16px; height: 16px; fill: #25D366;"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
-      </a>
+
+  <div class="client-box">
+    <span class="client-lbl">${clientInfo.label}</span>
+    <span class="client-name">${clientInfo.name}</span>
+    <span class="client-addr">${clientInfo.addr}</span>
+  </div>
+
+  <div class="quote-title">${quoteMeta.title}</div>
+
+  <table>
+    <thead><tr>
+      <th style="text-align:right">${uiLabels.tableDesc}</th>
+      <th>${uiLabels.tableQty}</th>
+      <th>${uiLabels.tableUnit}</th>
+      <th>${uiLabels.tablePrice}</th>
+      <th>${uiLabels.tableTotal}</th>
+    </tr></thead>
+    <tbody>${rowsHTML}</tbody>
+  </table>
+
+  <div class="fin-wrap">
+    <div class="fin-box">
+      <div class="fin-row fin-sub"><span>${uiLabels.subtotalText}</span><span dir="ltr">${subtotalRaw.toLocaleString('he-IL')} ₪</span></div>
+      ${discountRowHTML}
+      <div class="fin-row fin-vat"><span>${uiLabels.vatText} (${vatRate}%):</span><span dir="ltr">${Math.round(vat).toLocaleString('he-IL')} ₪</span></div>
+      <div class="fin-row fin-total"><span>${uiLabels.totalText}</span><span style="color:#ea580c" dir="ltr">${Math.round(total).toLocaleString('he-IL')} ₪</span></div>
+    </div>
+  </div>
+
+  <div style="border-top:2px solid #f1f5f9;padding-top:20px;">
+    <div class="clauses">
+      <div class="clause">
+        <span class="clause-title">${notesTitle}</span>
+        <div class="clause-text">${notes}</div>
+      </div>
+      <div class="clause">
+        <span class="clause-title">${paymentTitle}</span>
+        <div class="clause-text">${paymentTerms}</div>
+      </div>
+    </div>
+    <div class="sig">
+      <div class="sig-line"><div style="text-align:center;margin-bottom:6px">${sigLogoHTML}</div><div class="sig-bar company"><span class="sig-lbl company">${uiLabels.bizSignText}</span></div></div>
+      <div class="sig-line"><div class="sig-bar"><span class="sig-lbl">${uiLabels.clientSignText}</span></div></div>
+    </div>
   </div>
 </div>
-</body></html>
+</body></html>`;
+            };
+
+            const exportPDF = () => {
+                saveToLocal();
+                const btn = document.getElementById('btn-export');
+                if (btn) btn.disabled = true;
+                setIsExporting(true);
+
+                const html = buildPrintHTML();
+                const win = window.open('', '_blank');
+                if (win) {
+                    win.document.open();
+                    win.document.write(html);
+                    win.document.close();
+                    
+                    // פקודה זו אחראית לשם המסמך כששומרים אותו ל-PDF
+                    win.document.title = `${clientInfo.name || 'לקוח_ללא_שם'} - ${quoteMeta.label} מס ${quoteMeta.num}`;
+
+                    setTimeout(() => {
+                        win.focus();
+                        win.print();
+                        setIsExporting(false);
+                        if (btn) btn.disabled = false;
+                    }, 1500);
+                } else {
+                    alert('אנא אפשר חלונות קופצים עבור האתר הזה, ואז נסה שוב.');
+                    setIsExporting(false);
+                    if (btn) btn.disabled = false;
+                }
+            };
+
+            const handleLogoUpload = (e, setLogoFunc) => {
+                const file = e.target.files[0];
+                if(file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        setLogoFunc(ev.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            return (
+                <div className="p-2 md:p-8 min-h-screen">
+                    {/* Toolbar - Responsive */}
+                    <div className="max-w-[1000px] mx-auto mb-6 bg-white p-4 rounded-2xl md:rounded-3xl shadow-lg border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4 sticky top-2 z-50 no-print">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-sky-600 p-2 rounded-xl text-white shadow-lg">📄</div>
+                            <div className="text-center md:text-right">
+                                <h1 className="text-lg md:text-xl font-black text-slate-800">מערכת הצעות</h1>
+                                <p className="text-[10px] font-bold text-sky-500 uppercase tracking-widest">ניהול מסמכים ועיצוב דינמי</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-2 w-full md:w-auto">
+                            <button onClick={startNewQuote} className="flex-1 md:flex-none bg-slate-50 text-slate-600 px-4 py-2.5 rounded-xl font-bold border border-slate-200 hover:bg-slate-100 transition-all text-sm whitespace-nowrap">
+                                📄 חדשה
+                            </button>
+                            <button onClick={saveToLocal} className="flex-1 md:flex-none bg-emerald-50 text-emerald-600 px-4 md:px-6 py-2.5 rounded-xl font-bold border border-emerald-200 hover:bg-emerald-100 transition-all text-sm whitespace-nowrap">
+                                {saveStatus}
+                            </button>
+                            <button onClick={exportPDF} disabled={isExporting} className="w-full md:w-auto mt-2 md:mt-0 bg-sky-600 text-white px-8 py-2.5 rounded-xl font-bold shadow-xl shadow-sky-200 hover:bg-sky-700 active:scale-95 transition-all">
+                                {isExporting ? 'מייצר PDF...' : 'הפק PDF סופי'}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
+                        {/* Sidebar - Settings */}
+                        <div className="lg:col-span-1 space-y-4 no-print">
+                            <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-[2.5rem] shadow-sm border border-slate-200 space-y-6 lg:sticky lg:top-28">
+                                <h3 className="font-black text-slate-800 border-b pb-4 uppercase text-sm flex items-center gap-2">⚙️ הגדרות מערכת</h3>
+                                
+                                <div className="space-y-6">
+                                    <div className="space-y-2 p-3 bg-orange-50 rounded-2xl border border-orange-100">
+                                        <label className="flex justify-between text-[11px] font-black text-orange-700 uppercase"><span>הנחה מיוחדת (%)</span><span className="font-bold">{discount}%</span></label>
+                                        <input type="range" min="0" max="100" step="1" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="accent-orange-600" />
+                                    </div>
+
+                                    <div className="space-y-2 p-3 bg-sky-50 rounded-2xl border border-sky-100">
+                                        <label className="flex justify-between text-[11px] font-black text-sky-700 uppercase"><span>אחוז מע"מ</span><span className="font-bold">{vatRate}%</span></label>
+                                        <input type="range" min="0" max="30" step="1" value={vatRate} onChange={(e) => setVatRate(Number(e.target.value))} className="accent-sky-600" />
+                                    </div>
+
+                                    <hr className="border-slate-100" />
+
+                                    <div className="space-y-2">
+                                        <label className="flex justify-between text-[11px] font-black text-slate-400"><span>גודל לוגו ראשי</span><span className="text-sky-600">{logoSize}px</span></label>
+                                        <input type="range" min="100" max="500" value={logoSize} onChange={(e) => setLogoSize(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="flex justify-between text-[11px] font-black text-slate-400"><span>קנה מידה (Scale) תצוגה</span><span className="text-sky-600 font-black">{Math.round(tableScale*100)}%</span></label>
+                                        <input type="range" min="0.6" max="1.1" step="0.01" value={tableScale} onChange={(e) => setTableScale(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="flex justify-between text-[11px] font-black text-slate-400"><span>ריווח פסקאות</span><span className="text-sky-600">{globalSpacing}px</span></label>
+                                        <input type="range" min="0" max="80" value={globalSpacing} onChange={(e) => setGlobalSpacing(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="flex justify-between text-[11px] font-black text-slate-400"><span>גובה חתימות</span><span className="text-sky-600">{footerSpacing}px</span></label>
+                                        <input type="range" min="0" max="400" value={footerSpacing} onChange={(e) => setFooterSpacing(e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-4">
+                                    <button onClick={() => document.getElementById('logo-file').click()} className="w-full py-3 border-2 border-dashed border-slate-200 rounded-2xl text-[11px] font-black text-slate-400 hover:border-sky-300 hover:text-sky-600 transition-all flex items-center justify-center gap-2 bg-slate-50">🖼️ העלה לוגו ראשי</button>
+                                    <input type="file" id="logo-file" className="hidden" accept="image/*" onChange={(e) => handleLogoUpload(e, setCustomLogo)} />
+                                    
+                                    <button onClick={() => document.getElementById('signature-file').click()} className="w-full py-3 border-2 border-dashed border-slate-200 rounded-2xl text-[11px] font-black text-slate-400 hover:border-sky-300 hover:text-sky-600 transition-all flex items-center justify-center gap-2 bg-slate-50">✍️ העלה חתימה/לוגו תחתון</button>
+                                    <input type="file" id="signature-file" className="hidden" accept="image/*" onChange={(e) => handleLogoUpload(e, setSignatureLogo)} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Document Area */}
+                        <div className="lg:col-span-3 pb-20">
+                            <div id="document-canvas" className="quote-container rounded-lg md:rounded-none">
+                                
+                                <div style={{ transform: `scale(${window.innerWidth < 768 ? 1 : tableScale})`, transformOrigin: 'top right', width: `${window.innerWidth < 768 ? 100 : 100/tableScale}%` }}>
+                                    
+                                    {/* Header Section */}
+                                    <div className="flex flex-col md:flex-row justify-between items-start" style={{ marginBottom: `${globalSpacing}px` }}>
+                                        <div className="w-full md:flex-1 mb-6 md:mb-0">
+                                            <div className="mb-6 flex justify-center md:justify-start">
+                                                {customLogo ? (
+                                                    <img src={customLogo} style={{ width: `${logoSize}px`, maxWidth: '100%' }} className="h-auto object-contain" alt="Business Logo" />
+                                                ) : (
+                                                    <div style={{ width: `${logoSize}px`, maxWidth: '100%' }}>
+                                                        <svg viewBox="0 0 400 180" className="w-full h-auto">
+                                                            <text x="200" y="120" textAnchor="middle" fontFamily="Arial Black" fontWeight="900" fontSize="48" fill="#1e3a8a">לוגו העסק</text>
+                                                            <text x="200" y="155" textAnchor="middle" fontFamily="Arial" fontWeight="700" fontSize="18" letterSpacing="4" fill="#0ea5e9">יופיע כאן</text>
+                                                        </svg>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="border-r-4 border-sky-500 pr-4 space-y-1.5">
+                                                <input value={bizInfo.name} onChange={(e) => setBizInfo({...bizInfo, name: e.target.value})} className="text-2xl md:text-3xl font-black text-slate-800" />
+                                                <div className="text-[13px] md:text-[14px] text-slate-500 font-bold space-y-1 mt-3">
+                                                    <div className="flex gap-2">
+                                                        <input value={bizInfo.labels.id} className="w-20 text-slate-400 font-black" onChange={e => setBizInfo({...bizInfo, labels:{...bizInfo.labels, id:e.target.value}})} />
+                                                        <input value={bizInfo.id} onChange={e => setBizInfo({...bizInfo, id:e.target.value})} className="flex-1" />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <input value={bizInfo.labels.addr} className="w-20 text-slate-400 font-black" onChange={e => setBizInfo({...bizInfo, labels:{...bizInfo.labels, addr:e.target.value}})} />
+                                                        <input value={bizInfo.addr} onChange={e => setBizInfo({...bizInfo, addr:e.target.value})} className="flex-1" />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <input value={bizInfo.labels.phone} className="w-20 text-slate-400 font-black" onChange={e => setBizInfo({...bizInfo, labels:{...bizInfo.labels, phone:e.target.value}})} />
+                                                        <input value={bizInfo.phone} onChange={e => setBizInfo({...bizInfo, phone:e.target.value})} className="flex-1" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="w-full md:flex-1 text-right flex flex-col items-start md:items-end">
+                                            <input value={quoteMeta.label} onChange={e => setQuoteMeta({...quoteMeta, label:e.target.value})} className="bg-sky-900 text-white px-6 md:px-10 py-4 md:py-6 rounded-bl-[30px] md:rounded-bl-[45px] mb-6 shadow-xl text-2xl md:text-4xl font-black italic text-center w-full md:w-80 outline-none" />
+                                            <div className="bg-slate-50 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 w-full md:w-80 space-y-4 text-right shadow-inner">
+                                                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                                                    <input value={quoteMeta.labels.num} className="text-slate-400 text-[11px] font-black w-24" onChange={e => setQuoteMeta({...quoteMeta, labels:{...quoteMeta.labels, num:e.target.value}})}/>
+                                                    <input value={quoteMeta.num} onChange={e => setQuoteMeta({...quoteMeta, num:e.target.value})} className="text-right font-black w-32 bg-transparent text-sky-700" />
+                                                </div>
+                                                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                                                    <input value={quoteMeta.labels.date} className="text-slate-400 text-[11px] font-black w-24" onChange={e => setQuoteMeta({...quoteMeta, labels:{...quoteMeta.labels, date:e.target.value}})}/>
+                                                    <input value={quoteMeta.date} onChange={e => setQuoteMeta({...quoteMeta, date:e.target.value})} className="text-right font-bold w-32 bg-transparent" />
+                                                </div>
+                                                <div className="flex justify-between items-center text-slate-800 font-bold">
+                                                    <input value={quoteMeta.labels.due} className="text-slate-400 text-[11px] font-black w-24" onChange={e => setQuoteMeta({...quoteMeta, labels:{...quoteMeta.labels, due:e.target.value}})}/>
+                                                    <input value={quoteMeta.due} onChange={e => setQuoteMeta({...quoteMeta, due:e.target.value})} className="text-right font-black w-32 bg-transparent" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Client Context */}
+                                    <div className="bg-sky-50/60 border-y border-sky-100 py-6 px-6 md:py-8 md:px-10 rounded-[2rem] md:rounded-[2.5rem] mb-8 shadow-sm" style={{ marginBottom: `${globalSpacing}px` }}>
+                                        <input value={clientInfo.label} onChange={e => setClientInfo({...clientInfo, label:e.target.value})} className="text-[11px] font-black text-sky-600 mb-2 uppercase tracking-[4px]" />
+                                        <input value={clientInfo.name} onChange={e => setClientInfo({...clientInfo, name:e.target.value})} className="text-2xl md:text-3xl font-black text-sky-950 mb-1" placeholder="שם הלקוח / חברה" />
+                                        <input value={clientInfo.addr} onChange={e => setClientInfo({...clientInfo, addr:e.target.value})} className="text-md md:text-lg text-slate-500 font-bold" placeholder="כתובת או פרטים נוספים" />
+                                    </div>
+
+                                    {/* Subject / Title */}
+                                    <div className="mb-6 md:mb-8 px-2" style={{ marginBottom: `${globalSpacing}px` }}>
+                                        <AutoResizeTextarea 
+                                            value={quoteMeta.title} 
+                                            onChange={e => setQuoteMeta({...quoteMeta, title:e.target.value})} 
+                                            className="text-xl md:text-2xl font-black text-slate-800 border-r-8 border-sky-500 pr-4 block w-full bg-transparent leading-relaxed" 
+                                        />
+                                    </div>
+
+                                    {/* Data Table - Horizontal Scroll on Mobile */}
+                                    <div className="mb-10 w-full overflow-x-auto bg-white rounded-xl md:rounded-3xl shadow-sm border border-slate-200">
+                                        <div className="min-w-[650px] md:min-w-full">
+                                            <table className="w-full text-right table-fixed">
+                                                <thead>
+                                                    <tr className="bg-sky-900 text-white text-[13px] md:text-[14px] font-black tracking-tight">
+                                                        <th className="p-3 md:p-4 border-l border-sky-800 text-right w-5/12"><input value={uiLabels.tableDesc} onChange={e => updateLabel('tableDesc', e.target.value)} className="bg-transparent text-white w-full text-right outline-none placeholder-sky-300" /></th>
+                                                        <th className="p-3 md:p-4 border-l border-sky-800 w-16"><input value={uiLabels.tableQty} onChange={e => updateLabel('tableQty', e.target.value)} className="bg-transparent text-white w-full text-center outline-none placeholder-sky-300" /></th>
+                                                        <th className="p-3 md:p-4 border-l border-sky-800 w-20"><input value={uiLabels.tableUnit} onChange={e => updateLabel('tableUnit', e.target.value)} className="bg-transparent text-white w-full text-center outline-none placeholder-sky-300" /></th>
+                                                        <th className="p-3 md:p-4 border-l border-sky-800 w-28"><input value={uiLabels.tablePrice} onChange={e => updateLabel('tablePrice', e.target.value)} className="bg-transparent text-white w-full text-center outline-none placeholder-sky-300" /></th>
+                                                        <th className="p-3 md:p-4 w-28 md:w-32"><input value={uiLabels.tableTotal} onChange={e => updateLabel('tableTotal', e.target.value)} className="bg-transparent text-white w-full text-center outline-none placeholder-sky-300" /></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="text-[13px] md:text-[14px]">
+                                                    {items.map((item, index) => (
+                                                        <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors group relative">
+                                                            <td className="p-3 md:p-4 border-l border-slate-100 relative">
+                                                                <AutoResizeTextarea 
+                                                                    value={item.desc} 
+                                                                    onChange={e => updateItem(index, 'desc', e.target.value)} 
+                                                                    className="text-[13px] md:text-[14px] leading-relaxed text-slate-700 font-semibold w-full" 
+                                                                    rows={2} 
+                                                                />
+                                                                <button onClick={() => removeItem(index)} className="no-print mt-3 md:mt-0 w-max relative md:absolute md:-right-14 md:top-1/2 md:-translate-y-1/2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 transition-all rounded-full shadow-sm text-xs font-bold inline-flex items-center gap-1 border border-red-100" title="מחק שורה">🗑️ מחק</button>
+                                                            </td>
+                                                            <td className="p-3 md:p-4 text-center border-l border-slate-100 font-bold text-slate-600 align-top">
+                                                                <input type="number" min="0" step="0.1" value={item.qty} onChange={e => updateItem(index, 'qty', e.target.value)} className="text-center w-full" />
+                                                            </td>
+                                                            <td className="p-3 md:p-4 text-center border-l border-slate-100 font-bold text-slate-500 align-top">
+                                                                <input type="text" value={item.unit} onChange={e => updateItem(index, 'unit', e.target.value)} className="text-center w-full" placeholder="יח' / מ''ר" />
+                                                            </td>
+                                                            <td className="p-3 md:p-4 text-center border-l border-slate-100 font-black text-slate-700 align-top">
+                                                                <input type="number" value={item.price} onChange={e => updateItem(index, 'price', e.target.value)} className="text-center w-full" />
+                                                            </td>
+                                                            <td className="p-3 md:p-4 text-center font-black text-sky-900 text-md md:text-lg align-top bg-slate-50/50" dir="ltr">
+                                                                {Number(item.qty * item.price).toLocaleString()} ₪
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <button onClick={addItem} className="mb-10 flex items-center gap-2 text-sky-600 font-black no-print text-[12px] hover:bg-sky-50 px-6 py-3 rounded-full border border-sky-200 transition-all shadow-sm w-max mx-auto md:mx-0">
+                                        ➕ הוסף סעיף עבודה חדש
+                                    </button>
+
+                                    {/* Financial Breakdown */}
+                                    <div className="flex justify-start md:justify-end mb-10 md:mb-12 avoid-break" style={{ marginBottom: `${globalSpacing}px` }}>
+                                        <div className="w-full md:w-[420px] bg-slate-50 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-200 space-y-3 shadow-inner">
+                                            <div className="flex justify-between text-slate-500 font-bold text-md md:text-lg">
+                                                <input value={uiLabels.subtotalText} onChange={e => updateLabel('subtotalText', e.target.value)} className="w-32 bg-transparent text-right outline-none" />
+                                                <span dir="ltr">{subtotalRaw.toLocaleString()} ₪</span>
+                                            </div>
+                                            
+                                            {discount > 0 && (
+                                                <div className="flex justify-between text-orange-600 font-bold text-md md:text-lg">
+                                                    <div className="flex items-center gap-1">
+                                                        <input value={uiLabels.discountText} onChange={e => updateLabel('discountText', e.target.value)} className="w-16 bg-transparent text-right outline-none" />
+                                                        <span>({discount}%):</span>
+                                                    </div>
+                                                    <span dir="ltr">- {discountAmount.toLocaleString()} ₪</span>
+                                                </div>
+                                            )}
+
+                                            <div className="flex justify-between text-slate-500 font-bold border-b-2 border-slate-200 pb-4 text-md md:text-lg">
+                                                <div className="flex items-center gap-1">
+                                                    <input value={uiLabels.vatText} onChange={e => updateLabel('vatText', e.target.value)} className="w-16 bg-transparent text-right outline-none" />
+                                                    <span>({vatRate}%):</span>
+                                                </div>
+                                                <span dir="ltr">{vat.toLocaleString()} ₪</span>
+                                            </div>
+                                            <div className="flex justify-between text-2xl md:text-3xl font-black text-sky-950 pt-2">
+                                                <input value={uiLabels.totalText} onChange={e => updateLabel('totalText', e.target.value)} className="w-32 md:w-48 bg-transparent text-right outline-none" />
+                                                <span className="text-sky-700 font-black" dir="ltr">{total.toLocaleString()} ₪</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Final Clauses */}
+                                    <div className="mt-auto pt-6 md:pt-8 border-t-2 border-slate-100 avoid-break">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 mb-8 md:mb-10">
+                                            <div className="flex flex-col">
+                                                <input value={notesTitle} onChange={e => setNotesTitle(e.target.value)} className="text-md md:text-lg font-black text-slate-800 mb-3 md:mb-4 border-b-2 border-sky-200 pb-2" />
+                                                <AutoResizeTextarea value={notes} onChange={e => setNotes(e.target.value)} className="text-[12px] md:text-[13px] text-slate-600 font-semibold leading-relaxed min-h-[100px] md:min-h-[150px] p-2" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <input value={paymentTitle} onChange={e => setPaymentTitle(e.target.value)} className="text-md md:text-lg font-black text-slate-800 mb-3 md:mb-4 border-b-2 border-sky-200 pb-2" />
+                                                <AutoResizeTextarea value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} className="text-[12px] md:text-[13px] text-slate-600 font-semibold leading-relaxed min-h-[100px] md:min-h-[150px] p-2" />
+                                            </div>
+                                        </div>
+
+                                        {/* Signature Block - Stacked on mobile */}
+                                        <div className="flex flex-col md:flex-row justify-between items-center w-full gap-10 md:gap-0" style={{ marginTop: `${footerSpacing}px`, paddingBottom: '10mm' }}>
+                                            <div className="text-center w-full md:w-72 border-t-4 border-slate-300 pt-4 order-3 md:order-1">
+                                                <input value={uiLabels.clientSignText} onChange={e => updateLabel('clientSignText', e.target.value)} className="text-[12px] font-black text-slate-400 uppercase tracking-widest text-center w-full bg-transparent" />
+                                            </div>
+                                            
+                                            <div className="text-center opacity-20 no-print select-none order-1 md:order-2 mb-8 md:mb-0">
+                                                <input value={uiLabels.watermarkText} onChange={e => updateLabel('watermarkText', e.target.value)} className="text-[10px] font-black tracking-[8px] text-slate-400 uppercase text-center w-full bg-transparent" />
+                                            </div>
+                                            
+                                            <div className="text-center w-full md:w-72 border-t-4 border-sky-900 pt-4 relative order-2 md:order-3">
+                                                {signatureLogo && (
+                                                    <img src={signatureLogo} className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4" style={{ maxHeight: '80px', width: 'auto', objectFit: 'contain' }} alt="Signature" />
+                                                )}
+                                                <input value={uiLabels.bizSignText} onChange={e => updateLabel('bizSignText', e.target.value)} className="text-[12px] font-black text-sky-900 uppercase tracking-widest text-center w-full bg-transparent relative z-10" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div> {/* End of Scaling wrapper */}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        if (window.isAuthorized) {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        }
+    </script>
+</body>
+</html>
